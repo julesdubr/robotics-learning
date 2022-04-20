@@ -1,0 +1,10 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Batch Linear Least squares}{1}{}%
+\contentsline {subsection}{\numberline {1.1}Linear least squares}{1}{}%
+\contentsline {subsection}{\numberline {1.2}Ridge Regression}{1}{}%
+\contentsline {section}{\numberline {2}Radial Basis Function Networks}{2}{}%
+\contentsline {subsection}{\numberline {2.1}Batch RBFNs}{2}{}%
+\contentsline {subsection}{\numberline {2.2}Incremental RBFNs}{3}{}%
+\contentsline {section}{\numberline {3}Locally Weighted Regression}{6}{}%
+\contentsline {section}{\numberline {4}Neural Networks}{8}{}%
+\contentsline {section}{\numberline {5}Annexes}{10}{}%
