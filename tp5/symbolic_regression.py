@@ -126,16 +126,17 @@ if __name__ == "__main__":
 
     if problem == "f1":
         nb_dim = 2
-        input_training = []
-        output_training = []
-        input_testing = []
-        output_testing = []
-        name_vars = {"ARG0": "x1", "ARG1": "x2"}
+        name_vars = {"ARG0": "x", "ARG1": "y"}
 
         # Complétez pour générer l'ensemble d'entrainement et de validation avec une fonction choisie à 2 dimensions
         # <ANSWER>
-
+        f = lambda x, y : x * y + math.cos(x)
+        input_training = [(random.random(), random.random()) for _ in range(30)]
+        output_training = [f(x,y) for x, y in input_training]
+        input_testing = [(random.random(), random.random()) for _ in range(10)]
+        output_testing = [f(x,y) for x, y in input_testing]
         # </ANSWER>
+
     # en OPTION: vous pouvez faire des tests sur d'autres fonctions
     elif problem == "f2":
         # <ANSWER>
@@ -147,7 +148,13 @@ if __name__ == "__main__":
 
     # Complétez pour constituer l'ensemble de primitives qui pourront être utilisées
     # <ANSWER>
-
+    pset.addPrimitive(operator.add, nb_dim)
+    pset.addPrimitive(operator.sub, nb_dim)
+    pset.addPrimitive(operator.mul, nb_dim)
+    pset.addPrimitive(protectedDiv, nb_dim)
+    pset.addPrimitive(operator.neg, 1)
+    pset.addPrimitive(math.cos, 1)
+    pset.addPrimitive(math.sin, 1)
     # </ANSWER>
 
     pset.addTerminal(1)
@@ -164,7 +171,25 @@ if __name__ == "__main__":
     # Vous choisirez l'opérateur de sélection en fonction de la variable sel
     # (voir valeurs possibles dans le parser d'arguments)
     # <ANSWER>
+    toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=1, max_=2)
+    toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("compile", gp.compile, pset=pset)
 
+    toolbox.register("evaluate", evalSymbReg, input=input_training, output=output_training, nb_obj=nb_obj)
+    toolbox.register("mate", gp.cxOnePoint)
+    toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
+    toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
+
+    if sel == "elitist":
+        toolbox.register("select", tools.selTournament, tournsize=3)
+    elif sel == "double_tournament":
+        toolbox.register("select", tools.selDoubleTournament, fitness_size=4, fitness_first=True, parsimony_size=1.2)
+    elif sel == "nsga2":
+        toolbox.register("select", tools.selNSGA2, nd='standard')
+
+    toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
+    toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
     # </ANSWER>
 
     pop = toolbox.population(n=400)
@@ -181,7 +206,7 @@ if __name__ == "__main__":
     # Cela ne permettra pas de générer un NSGA-II complet, mais cela vous permettra de faire de premiers tests.
     # En option, si vous avez le temps, vous pourrez tester un NSGA-II complet pour voir si cela change les résultats.
     # <ANSWER>
-
+    pop = algorithms.eaMuPlusLambda(pop, toolbox, mu, lambda_, cxpb, mutpb, ngen, mstats, hof)
     # </ANSWER>
 
     log = tools.Logbook()

@@ -21,7 +21,7 @@ import random
 import operator
 import math
 
-from plot import *
+from maze_plot import *
 
 from scoop import futures
 
@@ -65,7 +65,24 @@ def eval_nn(genotype, nbstep=2000, render=False, name=""):
         f = open("traj" + name + ".log", "w")
 
     # <ANSWER>
+    nn.set_parameters(genotype)
 
+    observation = env.reset()
+
+    done = False
+    epoch = 0
+    while epoch < nbstep and not done:
+        if render:
+            env.render()
+        action = nn.predict(observation)
+        _, _, done, info = env.step(action)
+        
+        old_pos = info["robot_pos"]
+        total_dist += info["dist_obj"]
+
+        epoch += 1
+
+    return (total_dist, old_pos[:2])
     # </ANSWER>
 
 
@@ -149,7 +166,14 @@ def nsga2_NS(
 
         # Complétez pour positionner fitness.values selon la variante choisie
         # <ANSWER>
-
+        if variant == "FIT+NS":
+            ind.fit = fit
+            ind.bd = bd
+        elif variant == "FIT":
+            ind.fit = fit
+            ind.bd = bd
+        elif variant == "NS":
+            ind.bd = bd
         # </ANSWER>
 
         fbd.write(" ".join(map(str, bd)) + "\n")
@@ -169,7 +193,13 @@ def nsga2_NS(
 
     # Selon la variante, complétez ind.fitness.values pour ajouter la valeur de ind.novelty qui vient d'être calculée
     # <ANSWER>
-
+    for ind in population:
+        if variant == "FIT+NS":
+            ind.fitness.values = ind.fit, ind.novelty
+        elif variant == "FIT":
+            ind.fitness.values = ind.fit
+        elif variant == "NS":
+            ind.fitness.values = ind.novelty
     # </ANSWER>
 
     indexmin, valuemin = max(
@@ -194,7 +224,35 @@ def nsga2_NS(
         # et les individus susceptibles d'être ajoutés à l'archive ne doivent être pris que parmi les enfants.
 
         # <ANSWER>
+        offspring = toolbox.select_dcd(population)
+        offspring = algorithms.varAnd(offspring, toolbox, CXPB, MUTPB)
 
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        fitnesses_bds = toolbox.map(toolbox.evaluate, invalid_ind)
+        for ind, (fit, bd) in zip(invalid_ind, fitnesses_bds):
+            if variant == "FIT+NS":
+                ind.fit = fit
+                ind.bd = bd
+            elif variant == "FIT":
+                ind.fit = fit
+                ind.bd = bd
+            elif variant == "NS":
+                ind.bd = bd
+
+        archive = updateNovelty(population, offspring, archive, k, add_strategy, lambdaNov)
+
+        for ind in population + offspring:
+            if variant == "FIT+NS":
+                ind.fitness.values = ind.fit, ind.novelty
+            elif variant == "FIT":
+                ind.fitness.values = ind.fit,
+            elif variant == "NS":
+                ind.fitness.values = ind.novelty,
+
+        population[:] = toolbox.select(population + offspring)
+        
+        for i, p in enumerate(population):
+            print(f"Visualizing indiv {i}, fit={p.fitness.values}")
         # </ANSWER>
 
         # Update the hall of fame with the generated individuals
@@ -203,19 +261,14 @@ def nsga2_NS(
 
         # used to track the max value (useful in particular if using only novelty)
         indexmin, newvaluemin = min(
-            enumerate([i.fit for i in pq]), key=operator.itemgetter(1)
+            enumerate([i.fit for i in population]), key=operator.itemgetter(1)
         )
         if newvaluemin < valuemin:
             valuemin = newvaluemin
             print(
-                "Gen "
-                + str(gen)
-                + ", new min ! min fit="
-                + str(valuemin)
-                + " index="
-                + str(indexmin)
+                f"Gen {gen}, new min ! min fit={valuemin} index={indexmin}"
             )
-            eval_nn(pq[indexmin], True, "gen%04d" % (gen))
+            eval_nn(population[indexmin], render=False, name="gen%04d" % (gen))
     fbd.close()
     return population, None, paretofront
 
@@ -264,7 +317,7 @@ if __name__ == "__main__":
     )
     # plot_pareto_front(paretofront, "Final pareto front")
     for i, p in enumerate(paretofront):
-        print("Visualizing indiv " + str(i) + ", fit=" + str(p.fitness.values))
-        eval_nn(p, True)
+        print(f"Visualizing indiv {i}, fit={p.fitness.values}")
+        eval_nn(p, render=False)
 
     env.close()

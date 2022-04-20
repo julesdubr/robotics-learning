@@ -4,7 +4,13 @@
 from scipy.spatial import KDTree
 import random
 import numpy as np
+import math
 
+def sqdist(x,y):
+    return (x[0]-y[0])**2+(x[1]-y[1])**2
+
+def dist(x,y):
+    return math.sqrt(sqdist(x,y))
 
 class NovArchive:
     """Archive used to compute novelty scores."""
@@ -27,9 +33,17 @@ class NovArchive:
         # C'est la distance moyenne au self.k plus proches voisins parmi la population
         # et l'archive, représentée ici par un kdtree (cf https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.html)
         # <ANSWER>
+        kdd, kdi = self.kdtree.query(bd, k=self.k)
 
+        d = kdd.tolist()
+        for ind in population:
+            d.append(dist(ind.bd,bd))
+
+        d.sort()
+        d = d[:self.k]
+
+        return sum(d) / self.k
         # </ANSWER>
-        return
 
     def size(self):
         return len(self.all_bd)
